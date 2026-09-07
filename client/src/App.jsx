@@ -74,7 +74,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/generate",
+        "https://ai-content-block-generator-1.onrender.com/api/generate",
         {
           method: "POST",
 
@@ -135,7 +135,7 @@ function App() {
 
     try {
       const response = await fetch(
-        "http://localhost:5000/api/edit",
+        "https://ai-content-block-generator-1.onrender.com/api/edit",
         {
           method: "POST",
 
