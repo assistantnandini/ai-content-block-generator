@@ -2,17 +2,18 @@
 const OpenAI = require("openai");
 const { PageSchema } = require("./schema");
 
-// --------------------------------------------------
-// OPENAI CLIENT
-// --------------------------------------------------
+// OpenAI client is created only when OpenAI mode is used.
+function getOpenAIClient() {
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error(
+      "OPENAI_API_KEY is required when AI_MODE=openai."
+    );
+  }
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
-
-// --------------------------------------------------
-// GENERATE CONTENT WITH OPENAI
-// --------------------------------------------------
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+}
 
 async function generateWithOpenAI(
   businessDescription
@@ -21,15 +22,13 @@ async function generateWithOpenAI(
     "Generating content with OpenAI..."
   );
 
+  const openai = getOpenAIClient();
+
   const response =
     await openai.responses.create({
       model:
         process.env.OPENAI_MODEL ||
         "gpt-5.6-luna",
-
-      // ------------------------------------------------
-      // SYSTEM INSTRUCTIONS
-      // ------------------------------------------------
 
       instructions: `
 You are an AI webpage content generator.
@@ -49,7 +48,7 @@ in this exact order:
 HERO:
 - type must be "hero"
 - heading must be a string
-- subheading may be a string
+- subheading must be a string
 
 FEATURES:
 - type must be "features"
@@ -69,22 +68,12 @@ description.
 Return only the requested structured JSON.
 `,
 
-      // ------------------------------------------------
-      // USER INPUT
-      // ------------------------------------------------
-
       input: businessDescription,
-
-      // ------------------------------------------------
-      // STRUCTURED OUTPUT
-      // ------------------------------------------------
 
       text: {
         format: {
           type: "json_schema",
-
           name: "webpage_content",
-
           strict: true,
 
           schema: {
@@ -93,15 +82,10 @@ Return only the requested structured JSON.
             properties: {
               blocks: {
                 type: "array",
-
                 minItems: 3,
                 maxItems: 3,
 
                 prefixItems: [
-                  // ------------------------------------
-                  // HERO
-                  // ------------------------------------
-
                   {
                     type: "object",
 
@@ -129,10 +113,6 @@ Return only the requested structured JSON.
                     additionalProperties:
                       false,
                   },
-
-                  // ------------------------------------
-                  // FEATURES
-                  // ------------------------------------
 
                   {
                     type: "object",
@@ -182,10 +162,6 @@ Return only the requested structured JSON.
                       false,
                   },
 
-                  // ------------------------------------
-                  // FOOTER
-                  // ------------------------------------
-
                   {
                     type: "object",
 
@@ -210,8 +186,6 @@ Return only the requested structured JSON.
                   },
                 ],
 
-                // JSON Schema requires this when
-                // prefixItems is used.
                 items: false,
               },
             },
@@ -225,10 +199,6 @@ Return only the requested structured JSON.
       },
     });
 
-  // --------------------------------------------------
-  // GET OPENAI OUTPUT
-  // --------------------------------------------------
-
   const outputText =
     response.output_text;
 
@@ -241,10 +211,6 @@ Return only the requested structured JSON.
   console.log(
     "OpenAI response received."
   );
-
-  // --------------------------------------------------
-  // PARSE JSON
-  // --------------------------------------------------
 
   let parsedContent;
 
@@ -262,10 +228,6 @@ Return only the requested structured JSON.
       "OpenAI returned invalid JSON."
     );
   }
-
-  // --------------------------------------------------
-  // ZOD VALIDATION
-  // --------------------------------------------------
 
   const validationResult =
     PageSchema.safeParse(
@@ -292,10 +254,6 @@ Return only the requested structured JSON.
 
   return validationResult.data;
 }
-
-// --------------------------------------------------
-// EXPORT
-// --------------------------------------------------
 
 module.exports = {
   generateWithOpenAI,
